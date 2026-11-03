@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TillTally</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2ee;--surface:#fff;--ink:#1c2a24;--mute:#5f6f67;--line:#cfd9d2;--in:#1d7a4d;--out:#b3402a;--gold:#8a6a10;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a16;--surface:#1b2620;--ink:#e6efe9;--mute:#93a69b;--line:#2f3f36;--in:#4cc58a;--out:#ee8a73;--gold:#e0b84d;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Schibsted Grotesk',system-ui,sans-serif;line-height:1.45}
+main{max-width:960px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;font-weight:800;margin:0}
+h2{font-size:1.1rem;margin:0 0 8px}
+.sub,.note{color:var(--mute);font-size:.9rem}
+.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.badge{border:1px solid var(--gold);color:var(--gold);border-radius:99px;padding:2px 10px;font-size:.8rem;font-weight:600}
+.nav,.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.nav button,.tabs button,.tools button,.btn{padding:10px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:600;border-radius:8px;cursor:pointer}
+.nav button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs button{flex:1;border-width:2px;font-size:1.1rem;padding:16px 10px}
+.tabs small{display:block;font-weight:400;color:var(--mute);font-size:.8rem}
+.tabs button[aria-selected="true"]{border-color:var(--c);color:var(--c)}
+#tabR{--c:var(--in)}#tabP{--c:var(--out)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
+input,select,textarea{font:inherit;padding:9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid var(--in);outline-offset:1px}
+.chk{flex-direction:row;align-items:center;gap:8px;padding-bottom:10px;color:var(--ink)}
+.chk input{width:auto}
+.add{padding:10px 14px;border:0;border-radius:6px;background:var(--c,var(--in));color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat small{color:var(--mute);display:block}
+.stat b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tools button{padding:8px 12px;font-weight:400}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+th{font-size:.85rem;color:var(--mute);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0}
+.del{background:none;border:0;color:var(--mute);cursor:pointer;font-size:1.1rem}
+.empty{color:var(--mute);text-align:center;padding:24px}
+.lock{border:2px dashed var(--gold);border-radius:10px;padding:18px;text-align:center;margin-bottom:14px;background:var(--surface)}
+.meter{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:6px 0}
+.meter i{display:block;height:100%;background:var(--in)}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.plan{background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.plan.cur{border-color:var(--in)}
+.plan .price{font-size:1.6rem;font-weight:800}
+.plan ul{margin:0;padding-left:18px;flex:1}
+.ok{color:var(--in);font-weight:600}.bad{color:var(--out);font-weight:600}
+.hide{display:none}
+@media print{.nav,.tabs,.tools,#formPanel,.top,.del,.noprint{display:none!important}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<div><h1>TillTally</h1><span class="sub">Every rand in, every rand out. Tallied.</span></div>
+<span class="badge" id="planBadge"></span>
+</div>
+<div class="panel noprint" id="bizPanel" style="padding:10px 14px">
+<div class="tools" style="margin:0">
+<label style="flex-direction:row;align-items:center;gap:8px">Business <select id="bizSel" style="width:auto"></select></label>
+<input id="bizName" placeholder="New business or client name" style="width:220px" aria-label="New business name">
+<button id="bizAdd">Add business</button>
+<span class="note" id="bizMsg"></span>
+</div>
+</div>
+
+<div class="nav noprint" role="tablist">
+<button data-v="j" aria-selected="true">Home</button>
+<button data-v="vat" aria-selected="false">VAT</button>
+<button data-v="bank" aria-selected="false">Check bank</button>
+<button data-v="plans" aria-selected="false">Upgrade</button>
+</div>
+
+<section id="v-j">
+<div id="clients"></div>
+<div class="tabs" role="tablist">
+<button id="tabR" aria-selected="true">Money in<small>Sales and payments received</small></button>
+<button id="tabP" aria-selected="false">Money out<small>Bills and things you paid for</small></button>
+</div>
+<div class="panel" id="formPanel">
+<form id="f">
+<label>Amount (R)<input type="number" id="amt" step="0.01" min="0.01" required inputmode="decimal" placeholder="0.00"></label>
+<label>What was it for?<input id="desc" required placeholder="For example: bread sales"></label>
+<label>Category<select id="cat"></select></label>
+<label>Date<input type="date" id="date" required></label>
+<label class="chk"><input type="checkbox" id="vat"> Includes VAT</label>
+<button class="add" type="submit" id="addBtn">Save</button>
+<details style="grid-column:1/-1"><summary class="note">More details (optional)</summary><label style="margin-top:8px;max-width:300px">Receipt or cheque number<input id="ref"></label></details>
+</form>
+<div id="saved" class="ok" aria-live="polite" style="margin-top:8px"></div>
+<div id="usage" class="note" style="margin-top:10px"></div>
+</div>
+<div class="stats">
+<div class="stat"><small>Money in</small><b id="sIn" style="color:var(--in)"></b></div>
+<div class="stat"><small>Money out</small><b id="sOut" style="color:var(--out)"></b></div>
+<div class="stat"><small>Cash left</small><b id="sNet"></b></div>
+</div>
+<div class="panel">
+<div class="tools">
+<label style="flex-direction:row;align-items:center;gap:8px">Month <input type="month" id="month" style="width:auto"></label>
+<button id="all">Show all</button>
+<button id="csv">Export for Excel (CSV)</button>
+<button id="prn">Print or save as PDF</button>
+</div>
+<div class="note" id="exMsg"></div>
+<div class="wrap"><table>
+<thead><tr><th>Date</th><th>Ref</th><th>Description</th><th>Category</th><th class="n">VAT</th><th class="n">Amount</th><th></th></tr></thead>
+<tbody id="rows"></tbody><tfoot id="foot"></tfoot>
+</table></div>
+</div>
+</section>
+
+<section id="v-vat" class="hide"></section>
+<section id="v-bank" class="hide"></section>
+<section id="v-plans" class="hide"></section>
+
+<p class="note">Your records are stored in this browser only. Plan changes here are a demo: no payment is taken and nothing is sent to a server.</p>
+</main>
+
+<script>
+var CATS={R:['Cash sales','Customer payment','Loan received','Owner contribution','Other income'],
+P:['Stock and supplies','Rent','Salaries and wages','Electricity and water','Transport','Bank charges','Owner drawings','Other expenses']};
+var PLANS={free:{name:'Free',price:0,limit:30,biz:1},business:{name:'Business',price:79,limit:1e9,biz:1},practice:{name:'Practice',price:499,limit:1e9,biz:25}};
+var KEY='cashJournals.v2';
+var S={plan:'free',cur:'b1',bizs:[{id:'b1',name:'My business'}],entries:[],reqs:[]};
+try{var raw=localStorage.getItem(KEY);
+ if(raw){S=JSON.parse(raw)}
+ else{var old=localStorage.getItem('cashJournals.v1');if(old){JSON.parse(old).forEach(function(x){x.biz='b1';S.entries.push(x)})}}
+}catch(e){}
+var tab='R',month='',view='j';
+var $=function(i){return document.getElementById(i)};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function R(n){return 'R '+n.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function vatOf(x){return x.vat?x.amt-x.amt/1.15:0}
+function paid(){return S.plan!=='free'}
+function P(){return PLANS[S.plan]}
+function mine(biz){return S.entries.filter(function(x){return x.biz===(biz||S.cur)&&(!month||x.date.slice(0,7)===month)})}
+function lock(what){return '<div class="lock"><b>'+what+' is a paid feature.</b><p class="note">Switch to the Business plan to unlock it.</p><button class="btn" data-go="plans">See plans</button></div>'}
+
+function setView(v){
+ view=v;
+ ['j','vat','bank','plans'].forEach(function(k){$('v-'+k).classList.toggle('hide',k!==v)});
+ document.querySelectorAll('.nav button').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-v')===v)});
+ renderAll();
+}
+function setTab(t){
+ tab=t;
+ $('tabR').setAttribute('aria-selected',t==='R');$('tabP').setAttribute('aria-selected',t==='P');
+ $('formPanel').style.setProperty('--c',t==='R'?'var(--in)':'var(--out)');
+ $('cat').innerHTML=CATS[t].map(function(c){return '<option>'+c+'</option>'}).join('');
+ $('addBtn').textContent=t==='R'?'Save money in':'Save money out';
+ renderJ();
+}
+function renderHead(){
+ $('planBadge').textContent=P().name+' plan';$('bizPanel').style.display=S.plan==='practice'?'':'none';
+ $('bizSel').innerHTML=S.bizs.map(function(b){return '<option value="'+b.id+'"'+(b.id===S.cur?' selected':'')+'>'+esc(b.name)+'</option>'}).join('');
+}
+function renderJ(){
+ var inA=0,outA=0;
+ mine().forEach(function(x){if(x.type==='R')inA+=x.amt;else outA+=x.amt});
+ $('sIn').textContent=R(inA);$('sOut').textContent=R(outA);
+ var net=inA-outA;$('sNet').textContent=R(net);$('sNet').style.color=net<0?'var(--out)':'var(--in)';
+ var list=mine().filter(function(x){return x.type===tab}).sort(function(a,b){return a.date<b.date?1:-1});
+ var tot=0,tv=0;
+ $('rows').innerHTML=list.length?list.map(function(x){tot+=x.amt;tv+=vatOf(x);
+  return '<tr><td>'+x.date+'</td><td>'+esc(x.ref||'')+'</td><td>'+esc(x.desc)+'</td><td>'+esc(x.cat)+'</td><td class="n">'+(x.vat?R(vatOf(x)):'–')+'</td><td class="n">'+R(x.amt)+'</td><td><button class="del" aria-label="Delete entry" data-id="'+x.id+'">×</button></td></tr>'}).join('')
+  :'<tr><td colspan="7" class="empty">No entries yet. Add your first one above.</td></tr>';
+ $('foot').innerHTML=list.length?'<tr><td colspan="4">Total</td><td class="n">'+R(tv)+'</td><td class="n">'+R(tot)+'</td><td></td></tr>':'';
+ var u=$('usage');
+ if(!paid()){var m=($('date').value||'').slice(0,7);var n=S.entries.filter(function(x){return x.biz===S.cur&&x.date.slice(0,7)===m}).length;
+  u.innerHTML='Free plan: '+n+' of '+P().limit+' entries used for '+m+'<div class="meter"><i style="width:'+Math.min(100,n/P().limit*100)+'%"></i></div>'}
+ else u.textContent='';
+ var c=$('clients');
+ if(S.plan==='practice'&&S.bizs.length>1){
+  c.innerHTML='<div class="panel"><h2>All clients</h2><div class="wrap"><table><thead><tr><th>Client</th><th class="n">Entries</th><th class="n">Receipts</th><th class="n">Payments</th><th class="n">Net</th></tr></thead><tbody>'+
+  S.bizs.map(function(b){var e=mine(b.id),i=0,o=0;e.forEach(function(x){if(x.type==='R')i+=x.amt;else o+=x.amt});
+   return '<tr><td>'+esc(b.name)+'</td><td class="n">'+e.length+'</td><td class="n">'+R(i)+'</td><td class="n">'+R(o)+'</td><td class="n">'+R(i-o)+'</td></tr>'}).join('')+'</tbody></table></div></div>'}
+ else c.innerHTML='';
+}
+function renderVat(){
+ var o=0,i=0,ob=0,ib=0;
+ mine().forEach(function(x){var v=vatOf(x);if(x.type==='R'){o+=v;ob+=x.vat?x.amt-v:0}else{i+=v;ib+=x.vat?x.amt-v:0}});
+ var h='<div class="panel"><label style="max-width:220px">Period<input type="month" id="vm" value="'+month+'"></label><p class="note">Leave the period empty to include everything.</p></div>';
+ if(!paid()){$('v-vat').innerHTML=h+lock('The VAT summary');return}
+ $('v-vat').innerHTML=h+'<div class="panel"><h2>VAT summary for '+esc(S.bizs.filter(function(b){return b.id===S.cur})[0].name)+'</h2><div class="wrap"><table><tbody>'+
+ '<tr><td>Standard-rated sales (excl. VAT)</td><td class="n">'+R(ob)+'</td></tr>'+
+ '<tr><td>Output VAT (charged on receipts)</td><td class="n">'+R(o)+'</td></tr>'+
+ '<tr><td>Standard-rated purchases (excl. VAT)</td><td class="n">'+R(ib)+'</td></tr>'+
+ '<tr><td>Input VAT (paid on payments)</td><td class="n">'+R(i)+'</td></tr></tbody>'+
+ '<tfoot><tr><td>'+(o-i>=0?'VAT payable to SARS':'VAT refundable from SARS')+'</td><td class="n">'+R(Math.abs(o-i))+'</td></tr></tfoot></table></div>'+
+ '<p class="note">Based only on entries ticked “Includes VAT”. This is a summary to help you prepare your VAT201, not a filed return. Check it with your accountant.</p></div>';
+}
+function renderBank(){
+ if(!paid()){$('v-bank').innerHTML=lock('Bank reconciliation');return}
+ $('v-bank').innerHTML='<div class="panel"><h2>Match your bank statement to your journals</h2>'+
+ '<p class="note">Paste one line per transaction: date, description, amount. Money in is positive and money out is negative, for example 2026-10-02,Shop sales,1500.00</p>'+
+ '<textarea id="bk" rows="6" placeholder="2026-10-02,Shop sales,1500.00"></textarea>'+
+ '<div class="tools" style="margin-top:10px"><button id="bkRun" class="btn">Match transactions</button><button id="bkSample">Fill with sample lines</button></div></div><div id="bkOut"></div>';
+}
+function runBank(){
+ var ents=S.entries.filter(function(x){return x.biz===S.cur}),used={};
+ var lines=$('bk').value.split('\n').map(function(l){return l.trim()}).filter(Boolean);
+ var rows=lines.map(function(l){
+  var p=l.split(','),d=p[0].trim(),a=parseFloat(p[p.length-1]),ds=p.slice(1,-1).join(',').trim(),hit=null;
+  if(isNaN(a))return '<tr><td colspan="4" class="bad">Could not read: '+esc(l)+'</td></tr>';
+  ents.forEach(function(e){if(hit||used[e.id])return;
+   if(e.type===(a>0?'R':'P')&&Math.abs(e.amt-Math.abs(a))<0.005&&Math.abs((new Date(e.date)-new Date(d))/864e5)<=3){hit=e;used[e.id]=1}});
+  return '<tr><td>'+esc(d)+'</td><td>'+esc(ds)+'</td><td class="n">'+R(a)+'</td><td class="'+(hit?'ok':'bad')+'">'+(hit?'Matched to “'+esc(hit.desc)+'”':'Not in your journals')+'</td></tr>'}).join('');
+ var miss=ents.filter(function(e){return !used[e.id]}).map(function(e){
+  return '<tr><td>'+e.date+'</td><td>'+esc(e.desc)+'</td><td class="n">'+R(e.type==='R'?e.amt:-e.amt)+'</td><td class="bad">Not on the bank statement</td></tr>'}).join('');
+ $('bkOut').innerHTML='<div class="panel"><h2>On the bank statement</h2><div class="wrap"><table><thead><tr><th>Date</th><th>Description</th><th class="n">Amount</th><th>Result</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="empty">Paste some lines first.</td></tr>')+'</tbody></table></div></div>'+
+ (lines.length?'<div class="panel"><h2>In your journals but not matched</h2><div class="wrap"><table><thead><tr><th>Date</th><th>Description</th><th class="n">Amount</th><th>Result</th></tr></thead><tbody>'+(miss||'<tr><td colspan="4" class="empty ok">Everything in your journals is matched.</td></tr>')+'</tbody></table></div></div>':'');
+}
+function planCard(k,feats){
+ var p=PLANS[k],cur=S.plan===k;
+ return '<div class="plan'+(cur?' cur':'')+'"><h2>'+p.name+'</h2><div class="price">'+(p.price?'R'+p.price+' <small class="note">per month</small>':'R0')+'</div><ul>'+feats.map(function(f){return '<li>'+f+'</li>'}).join('')+'</ul>'+
+ (cur?'<span class="ok">Your current plan</span>':'<button class="btn" data-plan="'+k+'">Switch to '+p.name+' (demo)</button>')+'</div>';
+}
+function renderPlans(){
+ var did=function(k){return S.reqs.indexOf(k)>-1};
+ var svc=function(k,t,d,pr){return '<div class="plan"><h2>'+t+'</h2><div class="price">'+pr+'</div><p class="note" style="flex:1">'+d+'</p>'+(did(k)?'<span class="ok">Requested. We will be in touch.</span>':'<button class="btn" data-req="'+k+'">Request</button>')+'</div>'};
+ $('v-plans').innerHTML='<h2>Plans</h2><p class="note">Example prices to test with real users. Switching plans here is a demo.</p><div class="plans">'+
+ planCard('free',['1 business','30 entries per month for each business','Cash receipts and cash payments journals','Totals and month filter'])+
+ planCard('business',['1 business','Unlimited entries','VAT summary','Bank statement reconciliation','Excel (CSV) export and PDF printing'])+
+ planCard('practice',['For bookkeepers and accountants','Up to 25 client businesses','Everything in Business','All-clients overview table'])+'</div>'+
+ '<h2>Services and partners</h2><div class="plans">'+
+ svc('setup','Setup service','We set up your categories and opening entries for you.','R750 once-off')+
+ svc('train','Staff training','One session to teach your team to record entries correctly.','R500 per session')+
+ svc('partner','Partner programme','Banks, payment providers and accounting firms: register your interest.','Coming soon')+'</div>'+
+ '<p class="note">Requests are saved on this device only. When this becomes a real service, accounts, cloud backup and POPIA-compliant storage are needed before you take customers’ data or payments.</p>';
+}
+function renderAll(){renderHead();renderJ();renderVat();renderBank();renderPlans()}
+
+document.addEventListener('click',function(e){
+ var t=e.target,a;
+ if((a=t.getAttribute('data-v')))setView(a);
+ else if(t.getAttribute('data-go'))setView('plans');
+ else if((a=t.getAttribute('data-plan'))){S.plan=a;save();renderAll()}
+ else if((a=t.getAttribute('data-req'))){if(S.reqs.indexOf(a)<0)S.reqs.push(a);save();renderPlans()}
+ else if((a=t.getAttribute('data-id'))){S.entries=S.entries.filter(function(x){return String(x.id)!==a});save();renderJ()}
+ else if(t.id==='bkRun')runBank();
+ else if(t.id==='bkSample'){
+  var es=S.entries.filter(function(x){return x.biz===S.cur}).slice(0,3);
+  var ls=es.map(function(x){return x.date+','+x.desc+','+(x.type==='R'?x.amt:-x.amt).toFixed(2)});
+  ls.push(new Date().toISOString().slice(0,10)+',Monthly bank fee,-55.00');$('bk').value=ls.join('\n')}
+});
+document.addEventListener('change',function(e){if(e.target.id==='vm'){month=e.target.value;$('month').value=month;renderAll()}});
+$('f').addEventListener('submit',function(e){
+ e.preventDefault();
+ var d=$('date').value,m=d.slice(0,7);
+ var n=S.entries.filter(function(x){return x.biz===S.cur&&x.date.slice(0,7)===m}).length;
+ if(n>=P().limit){$('usage').innerHTML='<b class="bad">You have reached the free limit of '+P().limit+' entries for '+m+'.</b> <button class="btn" data-go="plans">See plans</button>';return}
+ S.entries.push({id:Date.now()+Math.random(),biz:S.cur,type:tab,date:d,ref:$('ref').value.trim(),desc:$('desc').value.trim(),cat:$('cat').value,amt:parseFloat($('amt').value),vat:$('vat').checked});
+ save();$('ref').value='';$('desc').value='';$('amt').value='';$('vat').checked=false;$('amt').focus();renderAll();$('saved').textContent='Saved ✓';setTimeout(function(){$('saved').textContent=''},2500);
+});
+$('bizSel').onchange=function(){S.cur=this.value;save();renderAll()};
+$('bizAdd').onclick=function(){
+ var n=$('bizName').value.trim();if(!n)return;
+ if(S.bizs.length>=P().biz){$('bizMsg').innerHTML=P().name+' plan allows '+P().biz+' business'+(P().biz>1?'es':'')+'. <button class="btn" data-go="plans">See plans</button>';return}
+ var id='b'+Date.now();S.bizs.push({id:id,name:n});S.cur=id;$('bizName').value='';$('bizMsg').textContent='';save();renderAll();
+};
+$('tabR').onclick=function(){setTab('R')};$('tabP').onclick=function(){setTab('P')};
+$('month').onchange=function(){month=this.value;renderAll()};
+$('all').onclick=function(){month='';$('month').value='';renderAll()};
+$('csv').onclick=function(){
+ if(!paid()){$('exMsg').innerHTML='<b class="bad">Export is a paid feature.</b> <button class="btn" data-go="plans">See plans</button>';return}
+ var rows=[['Journal','Date','Reference','Description','Category','VAT','Amount']];
+ mine().sort(function(a,b){return a.date<b.date?-1:1}).forEach(function(x){rows.push([x.type==='R'?'CRJ':'CPJ',x.date,x.ref,x.desc,x.cat,vatOf(x).toFixed(2),x.amt.toFixed(2)])});
+ var txt=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+ var w=window.open('','_blank');
+ if(w){w.document.write('<pre style="white-space:pre-wrap">'+esc(txt)+'</pre>');w.document.title='Journal CSV (copy into Excel)'}
+ else $('exMsg').textContent='Your browser blocked the pop-up. Allow pop-ups and try again.';
+};
+$('prn').onclick=function(){
+ if(!paid()){$('exMsg').innerHTML='<b class="bad">Printing is a paid feature.</b> <button class="btn" data-go="plans">See plans</button>';return}
+ try{window.print()}catch(e){$('exMsg').textContent='Printing is not available here. Open the page in its own tab and try again.'}
+};
+$('date').value=new Date().toISOString().slice(0,10);
+setTab('R');renderAll();
+</script>
+</body>
+</html>
